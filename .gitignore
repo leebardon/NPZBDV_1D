@@ -1,1 +1,6 @@
 /results/outfiles
+/logs
+/results/plots/bmass_individual/*
+/results/plots/bmass_stacked/*
+/results/plots/combined/*
+/results/plots/rstar/*

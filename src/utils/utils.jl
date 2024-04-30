@@ -259,6 +259,52 @@ function get_matrix(Mtype, nd, nb, nn, np, nz)
 end
 
 
+function check_for_negatives(RS)
+
+    for i in eachindex(RS)
+        for j in eachindex(RS[i])
+            RS[i][j] = ifelse(RS[i][j] < 0 || RS[i][j] > 15, NaN, RS[i][j])
+        end
+    end
+
+    return RS
+
+end
+
+function group_interactions(Cs, n)
+
+    interactions = Any[]
+    for (i, row) in enumerate(eachrow(Cs))
+        for (j, col) in enumerate(eachcol(Cs))
+            if Cs[i, j] > 0
+                push!(interactions, [i, j])
+            end
+        end
+    end
+
+    return get_interaction_dict(interactions, n) 
+
+end
+
+
+function get_interaction_dict(interactions, n)
+
+    out = Dict(name => Any[] for name in collect(1:1:n))
+    for i in interactions
+        for j in keys(out) 
+            if i[1] == j 
+                push!(out[j], i[2]) 
+            end 
+        end 
+    end
+
+    return out
+
+end
+
+
+
+
 function get_endpoints(vars, ds=nothing)
 
     endpoints = Vector{Any}()

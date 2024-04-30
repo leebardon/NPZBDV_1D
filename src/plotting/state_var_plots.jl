@@ -1,7 +1,7 @@
 
-# using NCDatasets
-# using Plots, Colors, LaTeXStrings, Measures
-# using DataFrames, Statistics
+using NCDatasets
+using Plots, Colors, LaTeXStrings, Measures
+using DataFrames, Statistics
 
 include("/home/lee/Dropbox/Development/NPZBDV_1D/src/utils/utils.jl")
 include("/home/lee/Dropbox/Development/NPZBDV_1D/src/utils/save_utils.jl")
@@ -30,22 +30,22 @@ function plot_state_vars(fsaven, season_num, bloom=false)
         end
     end
     
-    f1, dir1 = plot_stacked_dar(N, P, Z, B, D, O, zc, filename)
+    f1, dir1 = plot_stacked_dar(N, P, Z, B, D, V, O, zc, filename)
     println("saving to: $(dir1)/$(filename)_dar.png")
     savefig(f1,"$(dir1)/$(filename)_dar.png")
 
-    f2, dir2 = plot_individual_dar(P, Z, B, D, N, zc, filename)
+    f2, dir2 = plot_individual_dar(P, Z, B, D, V, N, zc, filename)
     println("saving to: $(dir2)/$(filename)_dar.png")
     savefig(f2,"$(dir2)/$(filename)_dar.png")
 
-    f3, dir3 = plot_combined_OSM(P, Z, B, D, N, zc, filename, rstar_b)
+    f3, dir3 = plot_combined_OSM(P, Z, B, D, V, N, zc, filename, rstar_b)
     println("saving to: $(dir3)/$(filename).png")
     savefig(f3,"$(dir3)/$(filename).png")
 
 end
 
 
-function plot_stacked_dar(N, P, Z, B, D, O, zc, filename)
+function plot_stacked_dar(N, P, Z, B, D, V, O, zc, filename)
 
     parent_folder = "results/plots/bmass_stacked/"
     dir = check_subfolder_exists(filename, parent_folder)
@@ -60,7 +60,8 @@ function plot_stacked_dar(N, P, Z, B, D, O, zc, filename)
     p1 = plot(sum(P, dims=2), -zc, lw=ls, lc="darkgreen", grid=false, xrotation=45, label=" Total P", 
     ylimits=yl, alpha=ab, labelfontsize=lfs, legend=lg, ylabel="Depth (m)", xlabel=L" mmol ~N/m^3")
     plot!(sum(B, dims=2), -zc, lw=ls, lc="skyblue", label=" Total B", alpha=ab, labelfontsize=lfs, legend=lg) 
-    plot!(sum(Z, dims=2), -zc, lw=ls, lc="maroon", label=" Total Z", alpha=ab, labelfontsize=lfs, legend=lg) 
+    plot!(sum(Z, dims=2), -zc, lw=ls, lc="red", label=" Total Z", alpha=ab, labelfontsize=lfs, legend=lg) 
+    plot!(sum(V, dims=2), -zc, lw=ls, lc="purple", label=" Total V", alpha=ab, labelfontsize=lfs, legend=lg) 
 
     p2 = plot(sum(D, dims=2), -zc, lw=ls, lc="orange", ls=:dot, grid=false, xrotation=45, label="", ylimits=yl, 
     alpha=ab, labelfontsize=lfs, legend=lg, yformatter=Returns(""), xlabel=L" mmol ~N/m^3")
@@ -81,15 +82,14 @@ function plot_stacked_dar(N, P, Z, B, D, O, zc, filename)
     return f1, dir
 end
 
-function plot_individual_dar(P, Z, B, D, N, zc, filename)
+function plot_individual_dar(P, Z, B, D, V, N, zc, filename)
 
     parent_folder = "results/plots/bmass_individual/"
     dir = check_subfolder_exists(filename, parent_folder)
 
-    P, Z, B = set_extinct_to_zero(P), set_extinct_to_zero(Z), set_extinct_to_zero(B)
-
     yl=(-890.0, 0)
-    bcols, dcols, pcols, ncols, zcols, ab, ab_ext, ls, lfs, lg = get_plot_vars()
+    ab=0.6
+    lg=:bottomright
     tfs = 9
     ls=7
     ab=0.7
@@ -98,7 +98,11 @@ function plot_individual_dar(P, Z, B, D, N, zc, filename)
 
     dcols = ["teal", "lightblue1", "azure4", "red4", "black", "seagreen", "purple4", "maroon", "red2"]
     bcols = ["teal", "lightblue1", "azure4", "red4", "black", "seagreen", "purple4", "maroon", "coral", "grey", "lime", "orchid", "pink2"]
+    pcols = ["hotpink2", "darkgreen","red4", "cyan4", "gold3", "black", "brown", "wheat2", "mediumpurple3", "darkseagreen" ]
     tls = ["POM", "POM Consumers", "DOM Lab", "DOM S.Lab", "DOM Mid", "DOM S.Rec", "DOM Rec", "Phyto"]
+    ncols = ["blue2"]
+
+    P, Z, B = set_extinct_to_zero(P), set_extinct_to_zero(Z), set_extinct_to_zero(B)
 
     p1 = plot(D[:,1], -zc, lc=dcols[1], lw=ls2, linestyle=:dot, grid=false,  label=" Most Labile", xrotation=45, ylimits=yl, title=tls[1], 
     titlefontsize=tfs, labelfontsize=lfs, legend=lg, ylabel="Depth (m)", xlabel="")
@@ -156,12 +160,10 @@ function plot_individual_dar(P, Z, B, D, N, zc, filename)
 
 end
 
-function plot_combined(P, Z, B, D, N, zc, filename, rstar)
+function plot_combined(P, Z, B, D, V, N, zc, filename, rstar)
 
     parent_folder = "results/plots/combined/"
     dir = check_subfolder_exists(filename, parent_folder)
-
-    P, Z, B = set_extinct_to_zero(P), set_extinct_to_zero(Z), set_extinct_to_zero(B)
 
     yl=(-890.0, 0)
     bcols, dcols, pcols, ncols, zcols, ab, ab_ext, ls, lfs, lg = get_plot_vars()
@@ -173,6 +175,8 @@ function plot_combined(P, Z, B, D, N, zc, filename, rstar)
     lfs = 7
     ls2 = 4
     xtfs = 8
+
+    P, Z, B = set_extinct_to_zero(P), set_extinct_to_zero(Z), set_extinct_to_zero(B)
 
     dcols = ["teal", "azure4", "red4", "black", "seagreen", "purple4", "maroon", "brown3", "honeydew3"]
     bcols = ["teal", "azure4", "red4", "black", "seagreen", "purple4", "maroon", "brown3", "grey", "lime", "orchid", "pink2", "coral"]
@@ -254,7 +258,7 @@ function plot_combined(P, Z, B, D, N, zc, filename, rstar)
 
 end
 
-function plot_combined_OSM(P, Z, B, D, N, zc, filename, rstar)
+function plot_combined_OSM(P, Z, B, D, V, N, zc, filename, rstar)
 
     parent_folder = "results/plots/combined/"
     dir = check_subfolder_exists(filename, parent_folder)
@@ -312,27 +316,8 @@ function plot_combined_OSM(P, Z, B, D, N, zc, filename, rstar)
 
 end
 
-# fsaven = "results/outfiles/Wi50y_231202_15:33_6P3Z13B8D.nc"
-# fsaven = "results/outfiles/Wi100y_231202_16:19_6P3Z13B8D.nc"
-# fsaven = "results/outfiles/Wi50y_231202_16:48_6P3Z13B8D.nc"
-# fsaven = "results/outfiles/Wi100y_231202_17:10_6P3Z13B8D.nc"
+bloom=false
+# fsaven = "results/outfiles/240430_01:08_Su30yNP_6P3Z13B8D13V.nc"
+fsaven = "results/outfiles/240430_10:54_Su30yNP_6P3Z13B8D13V.nc"
 
-# fsaven = "results/outfiles/Wi50y_231202_23:38_6P3Z13B8D.nc"
-# fsaven="results/outfiles/Wi100y_231203_10:39_6P3Z13B8D.nc" #winter steady
-# fsaven="results/outfiles/Wi100y_231203_11:03_6P3Z13B8D.nc" #winter pulse
-# fsaven="results/outfiles/Su100y_231203_14:48_6P3Z13B8D.nc" #summer steady
-# fsaven="results/outfiles/Su100y_231203_19:58_6P3Z13B8D.nc"  #summer pulse
-
-# fsaven = "results/outfiles/Wi50y_231205_21:08_6P3Z13B8D.nc" # winter, steady, 10,10,10 sinking
-# fsaven="results/outfiles/Wi50y_231205_22:21_6P3Z13B8D.nc" # winter, 10,10,10, mlz=40
-# fsaven="results/outfiles/Wi50y_231205_23:29_6P3Z13B8D.nc" # winter, 10,10,10, mlz=80
-
-# bloom=false
-# fsaven="results/outfiles/240213_19:37_Wi50yNP_6P3Z13B8D.nc"
-
-# bloom=true
-# fsaven="results/outfiles/blooms/mlz2_blm_240213_18:16_Wi50yNP_6P3Z13B8D.nc"
-
-# plot_state_vars_dar(fsaven, 1, bloom)
-# fsaven="results/outfiles/Su50y_240104_14:04_6P3Z13B8D.nc"
-# plot_state_vars_dar(fsaven, 2)
+plot_state_vars(fsaven, 2, bloom)

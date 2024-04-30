@@ -14,10 +14,10 @@ function rstar_analysis(fsaven, season_num, bloom)
     season_num == 1 ? season = "Winter" : season = "Summer"
 
     if bloom==true
-        N, P, Z, B, D, O = get_bloom_means(["n", "p", "z", "b", "d", "o"], ds)
+        N, P, Z, B, D, O = get_bloom_means(["n", "p", "z", "b", "d", "v", "o"], ds)
     else
         if ds["pulse"][:] == 1
-            N, P, Z, B, D, O = get_endpoints(["n", "p", "z", "b", "d", "o"], ds)
+            N, P, Z, B, D, O = get_endpoints(["n", "p", "z", "b", "d", "v", "o"], ds)
         else
             N, P, Z, B, D, O = mean_over_time(["n", "p", "z", "b", "d", "o"], ds, season_num)
         end
@@ -171,7 +171,7 @@ function RstarB(loss, ds)
     umax_ij = ds["umax_ij"][:,:]
     Km_ij = ds["Km_ij"][:,:]
     yield = ds["y_ij"][:,:]
-    temp_mod = get_temp_mod(ds)
+    temp_mod = ds["temp_fun"][:]
     II, JJ = get_nonzero_axes(ds["CM"][:,:])
 
     RS = Any[]
@@ -193,7 +193,7 @@ function RstarP(loss, ds, np)
 
     vmax_ij = ds["vmax_ij"][:,:]
     Kp_ij = ds["Kp_ij"][:,:]
-    temp_mod = get_temp_mod(ds)
+    temp_mod = ds["temp_fun"][:]
     II, JJ = get_nonzero_axes(ds["CMp"][:,:])
 
     RS = Any[]
