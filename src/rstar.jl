@@ -1,33 +1,34 @@
-# using NCDatasets
-# using Plots, ColorSchemes, LaTeXStrings
-# using DataFrames, CSV
-# using SparseArrays, LinearAlgebra, Statistics
+using NCDatasets
+using Plots, ColorSchemes, LaTeXStrings
+using DataFrames, CSV
+using SparseArrays, LinearAlgebra, Statistics
 
 include("utils/utils.jl")
 include("utils/save_utils.jl")
 include("plotting/rstar_plots.jl")
 
 
-function rstar_analysis(fsaven, season_num, bloom)
+function rstar_analysis(fsaven, season_num, lysis, graze, bloom)
 
     ds = NCDataset(fsaven)
     season_num == 1 ? season = "Winter" : season = "Summer"
 
     if bloom==true
-        N, P, Z, B, D, O = get_bloom_means(["n", "p", "z", "b", "d", "v", "o"], ds)
+        N, P, Z, B, D, V, O = get_bloom_means(["n", "p", "z", "b", "d", "v", "o"], ds)
     else
         if ds["pulse"][:] == 1
-            N, P, Z, B, D, O = get_endpoints(["n", "p", "z", "b", "d", "v", "o"], ds)
+            N, P, Z, B, D, V, O = get_endpoints(["n", "p", "z", "b", "d", "v", "o"], ds)
         else
-            N, P, Z, B, D, O = mean_over_time(["n", "p", "z", "b", "d", "o"], ds, season_num)
+            N, P, Z, B, D, V, O = mean_over_time(["n", "p", "z", "b", "d", "v", "o"], ds, season_num)
         end
     end
 
-    # P = set_extinct_to_zero(P)
-    # B = set_extinct_to_zero(B)
-    # Z = set_extinct_to_zero(Z)
+    P = set_extinct_to_zero(P)
+    B = set_extinct_to_zero(B)
+    Z = set_extinct_to_zero(Z)
+    # V = set_extinct_to_zero(V)
 
-    rstar_b, rstar_p, rstar_z = get_rstar(B, P, Z, ds)
+    rstar_b, rstar_p, rstar_z = get_rstar(B, P, Z, V, lysis, graze, ds)
     # plot_rstar(rstar_b, rstar_p, rstar_z, fsaven)
     plot_rstar_dar(rstar_b, rstar_p, rstar_z, fsaven)
 
@@ -36,18 +37,27 @@ function rstar_analysis(fsaven, season_num, bloom)
 end 
 
 
-function get_rstar(B, P, Z, ds)
+function get_rstar(B, P, Z, V, lysis, graze, ds)
 
-    nb, nz, np = get_size([B, Z, P])
+    nb, nz, np, nv = get_size([B, Z, P, V])
+
+    # B loss from lysis (if explicitly included) added to mort
+    mort_b = mortality(B, V, ds, nb, lysis, graze, "B")
+    mort_p = mortality(P, V, ds, np, lysis, graze, "P")
+
+    # calc b_grazing only if Z and  calc b_lysis only if V
+    if graze == 1 
+        grz_b = b_grazing(B, Z, np, nb, nz, ds) 
+        grz_p = p_grazing(P, Z, ds, np, nz)
+    else    
+        grz_b, grz_p = 0, 0
+    end
     
-    mort_b = mortality(B, ds, nb, "B")
-    grz_b = b_grazing(B, Z, np, nb, nz, ds)
-    loss_b = loss(B, mort_b, grz_b, nb)
+
+    loss_b = loss(B, mort_b, grz_b, graze, nb)
     rstar_b = RstarB(loss_b, ds)
 
-    mort_p = mortality(P, ds, np, "P")
-    grz_p = p_grazing(P, Z, ds, np, nz)
-    loss_p = loss(P, mort_p, grz_p, np)
+    loss_p = loss(P, mort_p, grz_p, graze, np)
     rstar_p = RstarP(loss_p, ds, np)
 
     #TODO fix rstar z calcs (check yield in particular, should not be y_ij)
@@ -64,25 +74,36 @@ end
 #                                     MORTALITY
 #-----------------------------------------------------------------------------------
 
-function mortality(Biomass, ds, n, group)
+function mortality(Biomass, V, ds, n, lysis, graze, group)
 
     ngrid = length(Biomass[:,1])
     mort = zeros(Float64, ngrid, n) 
 
     if group == "B"
-        for i in range(1, n)
-            mort[:, i] += (ds["m_lb"][i] .+ ds["m_qb"][i] .* Biomass[:,i])
+        if lysis == 1
+            for i in range(1, n)
+                lysis_Bi = get_lysis_Bi(ds, Biomass[:, i], V[:, i])
+                mort[:, i] += (ds["m_lb"][i] .* Biomass[:,i]) .+ lysis_Bi
+            end
+        else
+            for i in range(1, n)
+                mort[:, i] += (ds["m_lb"][i] .+ ds["m_qb"][i] .* Biomass[:,i])
+            end
         end
-    elseif group == "P"
+    end
+
+    if group == "P"
         for i in range(1, n)
-            m_lp = ones(n) * 0 
-            m_qp = ones(n) * 0.1
-            mort[:, i] += (m_lp[i] .+ m_qp[i] .* Biomass[:,i])
-            # mort[:, i] += (ds["m_lp"][i] .+ ds["m_qp"][i] .* Biomass[:,i])
+                # mort[:, i] += (m_lp[i] .+ m_qp[i] .* Biomass[:,i])
+            mort[:, i] += (ds["m_lp"][i] .+ ds["m_qp"][i] .* Biomass[:,i])
         end
-    elseif group == "Z"
-        for i in range(1, n)
-            mort[:, i] += (ds["m_lz"][i] .+ ds["m_qz"][i] .* Biomass[:,i])
+    end
+
+    if group == "Z"
+        if graze == 1
+            for i in range(1, n)
+                mort[:, i] += (ds["m_lz"][i] .+ ds["m_qz"][i] .* Biomass[:,i])
+            end
         end
     end
 
@@ -90,6 +111,15 @@ function mortality(Biomass, ds, n, group)
 
 end
 
+
+function get_lysis_Bi(ds, Bi, Vi)
+       
+    lysis_Bi = ds["vly"] .* Bi .* Vi
+    lysis_Bi = replace!(lysis_Bi, NaN => 0.0)
+        
+    return lysis_Bi
+
+end
 
 #-----------------------------------------------------------------------------------
 #                                     GRAZING
@@ -148,13 +178,19 @@ end
 #-----------------------------------------------------------------------------------
 # MORTALITY + GRAZING
 
-function loss(Biomass, mortality, grazing, n)
+function loss(Biomass, mortality, grazing, graze, n)
 
     ngrid = length(Biomass[:,1])
     loss = zeros(Float64, ngrid, n)
 
     for i in range(1, n)
-        loss[:,i] = mortality[:,i] .+ grazing[:,i]
+        loss[:,i] = mortality[:,i] 
+    end
+
+    if graze == 1 
+        for i in range(1, n)
+            loss[:,i] += grazing[:,i]
+        end
     end
 
     return loss
@@ -179,9 +215,10 @@ function RstarB(loss, ds)
         push!(RS, Km_ij[II[j],JJ[j]] .* loss[:, j] ./ (yield[II[j],JJ[j]] .* umax_ij[II[j],JJ[j]] .* temp_mod .- loss[:, j]))
     end
 
+    # When R* plots are logscale, replace 0 with NaN or plots won't work
     RS_out = check_for_negatives(RS)
+    RS_out = replace.(RS, 0.0 => NaN)
 
-    # RS_out = replace!(RS, NaN => 0.0)
 
     return RS_out
 
@@ -228,29 +265,10 @@ function RstarZ(loss, ds, nz)
 
 end
 
+# lysis=1
+# graze=2
+# season=1
+# bloom=false
+# fsaven="results/outfiles/240501_14:06_Wi2yNP_6P3Z13B8D13V.nc"
+# rstar_analysis(fsaven, season, lysis, graze, bloom)
 
-
-
-# fsaven = "results/outfiles/Wi50y_231202_15:33_6P3Z13B8D.nc" # meso steady 50yrs
-# fsaven = "results/outfiles/Wi100y_231202_16:19_6P3Z13B8D.nc" # meso steady 100yrs
-# fsaven = "results/outfiles/Wi50y_231202_16:48_6P3Z13B8D.nc" # meso pulse 50yrs
-# fsaven = "results/outfiles/Wi100y_231202_17:10_6P3Z13B8D.nc" # meso pulose 100yrs
-
-# fsaven="results/outfiles/Wi50y_231202_23:38_6P3Z13B8D.nc"
-# fsaven = "results/outfiles/Wi50y_231203_00:10_6P3Z13B8D.nc"
-# fsaven="results/outfiles/Wi50y_231203_00:42_6P3Z13B8D.nc"
-# fsaven="results/outfiles/Wi50y_231203_01:17_6P3Z13B8D.nc"
-# fsaven="results/outfiles/Wi50y_231203_01:42_6P3Z13B8D.nc"
-# fsaven="results/outfiles/Wi100y_231203_10:39_6P3Z13B8D.nc"
-# fsaven="results/outfiles/Wi100y_231203_11:03_6P3Z13B8D.nc"
-
-# fsaven="results/outfiles/Wi100y_231203_10:39_6P3Z13B8D.nc" #winter steady
-# fsaven="results/outfiles/Wi100y_231203_11:03_6P3Z13B8D.nc" #winter pulse
-# fsaven="results/outfiles/Su100y_231203_14:48_6P3Z13B8D.nc" #summer steady
-# fsaven="results/outfiles/Su100y_231203_19:58_6P3Z13B8D.nc"  #summer pulse
-
-# fsaven="results/outfiles/Wi50y_231212_16:28_6P3Z13B8D.nc"
-# rstar_analysis(fsaven, 1)
-
-# fsaven="results/outfiles/Su50y_231212_12:30_6P3Z13B8D.nc"
-# rstar_analysis(fsaven, 2)

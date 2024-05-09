@@ -75,7 +75,9 @@
             ##--------------------------------------------------------------------------------------------------#
             ##   LOAD MODEL
             ##--------------------------------------------------------------------------------------------------#
+            bloom=false
             lysis = request(message("LY2"), RadioMenu(message("LY1")))
+            graze = request(message("GZ2"), RadioMenu(message("GZ1")))
             files = readdir("src/prescribed")
             f = request("\nSelect model to run:", RadioMenu(files))
             include("prescribed/$(files[f])")
@@ -83,8 +85,9 @@
             ##--------------------------------------------------------------------------------------------------#
             ##   RUN MODEL
             ##--------------------------------------------------------------------------------------------------#
-            N, P, Z, B, D, V, O, track_time = run_NPZBDV(params, season, lysis)
-            log_params(params, season, lysis)
+            N, P, Z, B, D, V, O, track_time = run_NPZBDV(params, season)
+            log_params(params, season, lysis, graze)
+            plot_state_vars(fsaven, season, lysis, graze)
             exit()
 
         elseif run_type == 2
@@ -105,11 +108,12 @@
                     umax_i, umax_ij, Km_i, Km_ij, y_ij, m_lb, m_qb, CM, Fg_b,
                     g_max, K_g, γ, m_lz, m_qz, GrM, kappa_z, wd, ngrid, pulse, 
                     om_dist_mort, om_dist_lys, om_dist_vde, VM, vly, vbs, vde,
-                    e_o, yo_ij, koverh, o2_sat, ml_boxes, t_o2relax, o2_deep, fsaven
+                    e_o, yo_ij, koverh, o2_sat, ml_boxes, t_o2relax, o2_deep, fsaven, lysis, graze
             )
 
-            N, P, Z, B, D, V, O, track_time = run_NPZBDV(params, season, lysis)
-            log_params(params, season, lysis)
+            N, P, Z, B, D, V, O, track_time = run_NPZBDV(params, season)
+            log_params(params, season, lysi, graze)
+            plot_state_vars(fsaven, season, lysis, graze)
             exit()
 
         elseif run_type == 4
@@ -131,11 +135,12 @@
                     umax_i, umax_ij, Km_i, Km_ij, y_ij, m_lb, m_qb, CM, Fg_b,
                     g_max, K_g, γ, m_lz, m_qz, GrM, kappa_z, wd, ngrid, pulse, 
                     om_dist_mort, om_dist_lys, om_dist_vde, VM, vly, vbs, vde,
-                    e_o, yo_ij, koverh, o2_sat, ml_boxes, t_o2relax, o2_deep, fsaven
+                    e_o, yo_ij, koverh, o2_sat, ml_boxes, t_o2relax, o2_deep, fsaven, lysis, graze
             )
 
-            N, P, Z, B, D, V, O, track_time = run_NPZBD(params, season, lysis, bloom)  
-            log_params(params, season, lysis)   
+            N, P, Z, B, D, V, O, track_time = run_NPZBD(params, season, bloom)  
+            log_params(params, season, lysis, graze)  
+            plot_state_vars(fsaven, season, lysis, graze, bloom) 
             exit()
 
         end

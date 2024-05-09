@@ -1,14 +1,14 @@
 
-using NCDatasets
-using Plots, Colors, LaTeXStrings, Measures
-using DataFrames, Statistics
+# using NCDatasets
+# using Plots, Colors, LaTeXStrings, Measures
+# using DataFrames, Statistics
 
-include("/home/lee/Dropbox/Development/NPZBDV_1D/src/utils/utils.jl")
-include("/home/lee/Dropbox/Development/NPZBDV_1D/src/utils/save_utils.jl")
-include("/home/lee/Dropbox/Development/NPZBDV_1D/src/rstar.jl")
+# include("/home/lee/Dropbox/Development/NPZBDV_1D/src/utils/utils.jl")
+# include("/home/lee/Dropbox/Development/NPZBDV_1D/src/utils/save_utils.jl")
+# include("/home/lee/Dropbox/Development/NPZBDV_1D/src/rstar.jl")
 
 
-function plot_state_vars(fsaven, season_num, bloom=false)
+function plot_state_vars(fsaven, season_num, lysis, graze, bloom=false)
 
     H = 890
     zc = get_zc(H)
@@ -18,7 +18,7 @@ function plot_state_vars(fsaven, season_num, bloom=false)
     ds.attrib["Season"] == "winter" ? season_num == 1 : season_num == 2
     season_num == 1 ? season = "Mesotrophic" : season = "Oligotrophic"
 
-    rstar_b, _, _ = rstar_analysis(fsaven, season_num, bloom)
+    rstar_b, _, _ = rstar_analysis(fsaven, season_num, lysis, graze, bloom)
 
     if bloom==true
         N, P, Z, B, D, V, O = get_bloom_means(["n", "p", "z", "b", "d", "v", "o"], ds)
@@ -316,8 +316,14 @@ function plot_combined_OSM(P, Z, B, D, V, N, zc, filename, rstar)
 
 end
 
-bloom=false
+# bloom=false
 # fsaven = "results/outfiles/240430_01:08_Su30yNP_6P3Z13B8D13V.nc"
-fsaven = "results/outfiles/240430_10:54_Su30yNP_6P3Z13B8D13V.nc"
+# fsaven = "results/outfiles/240430_10:54_Su30yNP_6P3Z13B8D13V.nc"
+# fsaven="results/outfiles/240501_16:58_Wi2yNP_6P3Z13B8D13V.nc"
+# season_num=1
+# lysis=1
+# graze=2
 
-plot_state_vars(fsaven, 2, bloom)
+# plot_state_vars(fsaven, season_num, lysis, graze, bloom)
+
+

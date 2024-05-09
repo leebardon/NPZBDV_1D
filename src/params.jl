@@ -68,5 +68,7 @@
     t_o2relax::Float64             # deep oxygen relaxation (1/day)
     o2_deep::Float64               # mmol/m3
     fsaven::String                 # save file name
+    lysis::Int64                   # Explicit viral lysis = 1, Implicit (quadratic mortality term) = 2
+    graze::Int64                   # Include grazers = 1, Exclude grazers = 2
 end
 

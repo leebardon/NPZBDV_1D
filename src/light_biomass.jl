@@ -107,8 +107,8 @@ end
 # N = ds["n"][:,:]
 # P = ds["p"][:,:]
 
-ds = NCDataset("results/outfiles/Wi50y_231214_20:10_6P3Z13B8D.nc")
-N = ds["n"][:,:,end]
-P = ds["p"][:,:,end]
+# ds = NCDataset("results/outfiles/Wi50y_231214_20:10_6P3Z13B8D.nc")
+# N = ds["n"][:,:,end]
+# P = ds["p"][:,:,end]
 
-dPdt, dNdt, dOdt = phyto_uptake(ds, N, P)
+# dPdt, dNdt, dOdt = phyto_uptake(ds, N, P)

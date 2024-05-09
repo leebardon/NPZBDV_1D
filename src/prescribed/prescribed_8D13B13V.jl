@@ -95,45 +95,30 @@ Km_ij =[0.54  0  0  0  0  0  0  0  0  0  0  0  0    # in units of K_DON, calcula
 # -----------------------------------------------------------------------------------------------------------#
 #                                       ZOOPLANKTON PARAMS 
 #------------------------------------------------------------------------------------------------------------#
+if graze == 1
 # GrM - first 6 cols are phyto, next 3 are POM and then 10 dom consuming bacteria, rows are zoo
-GrM =  [1.0  1.0  1.0  1.0  1.0  1.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0 
-        0.0  0.0  0.0  0.0  0.0  0.0  1.0  1.0  1.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0 
-        0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  1.0  1.0  1.0  1.0  1.0  1.0  1.0  1.0  1.0  1.0 ] ;
+    GrM =  [1.0  1.0  1.0  1.0  1.0  1.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0 
+            0.0  0.0  0.0  0.0  0.0  0.0  1.0  1.0  1.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0 
+            0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  1.0  1.0  1.0  1.0  1.0  1.0  1.0  1.0  1.0  1.0 ] ;
 
-g_max = ones(nz)*1.6
-K_g = ones(nz)*1.0
-γ = ones(nz)*0.3
+    g_max = ones(nz)*1.6
+    K_g = ones(nz)*1.0
+    γ = ones(nz)*0.3
+    zIC = ones(Float64, ngrid, nz) * 0.01
+else
+    GrM = fill(0, (nz, (np + nb)))
+    g_max = zeros(nz)
+    K_g = zeros(nz)
+    γ = zeros(nz)
+    zIC = zeros(Float64, ngrid, nz) 
 
-# -----------------------------------------------------------------------------------------------------------#
-#                                     MORTALITY RATES (mmol/m3/day)
-#------------------------------------------------------------------------------------------------------------#
-m_lp = ones(np) * 0.1 
-m_qp = ones(np) * 0.1  # (.1 if explicit grazers, if not, 1)
-
-m_lb = ones(nb) * 0.1
-m_qb = ones(nb) * 0.05
-
-m_lz = ones(nz) * 0.1
-m_qz = ones(nz) * 0.5
-
-
-# -----------------------------------------------------------------------------------------------------------#
-#                                           ORGANIC MATTER
-#------------------------------------------------------------------------------------------------------------#
-om_dist_mort = [0.06, 0.19, 0.06, 0.02, 0.13, 0.39, 0.13, 0.02 ]  
-om_dist_lys = [0.0, 0.0, 0.0, 0.4, 0.3, 0.1, 0.0, 0.2]   # viral shunt reduces POM, enhances lab, some slab and ref from cell walls
-om_dist_vde = [0.0, 0.0, 0.0, 0.7, 0.3, 0.0, 0.0, 0.0]  # viral decay mostly amino acids/labile DOM
-
-
-# Sinking rate for POM  
-ws = zeros(nd)                  
-ws[1], ws[2], ws[3] = 10.0, 10.0, 10.0
+end
 
 # -----------------------------------------------------------------------------------------------------------#
 #                                       VIRUS PARAMS 
 #------------------------------------------------------------------------------------------------------------#
 if lysis == 1
-    # # rows are viruses, cols are bacteria
+    # rows are viruses, cols are bacteria
     VM = [  1.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  
             0.0  1.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0
             0.0  0.0  1.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0 
@@ -149,9 +134,9 @@ if lysis == 1
             0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  1.0  ];
         
     # vly = 4*10e−6         # lysis rate 8*10e-12 L/virus/day (weitz et al 2015) or 2.17 * 10^-11 (2.17*10e−14 m3/virus/day - Xie et al 2022)
-    vly = 1.2
+    vly = 1.6
     vbs = 23                # burst size 
-    vde = 0.17              # decay rate (day-1)  0.17
+    vde = 0.1               # decay rate (day-1)  0.17
     vIC = ones(Float64, ngrid, nv) * 0.1
 
     # how much nitrogen per virus? get a virus quota per nitrogen i.e. mmol N / virus then convert back to mmol/day
@@ -162,6 +147,33 @@ else
     vde = 0.0   
     vIC = zeros(Float64, ngrid, nv)       
 end
+
+
+# -----------------------------------------------------------------------------------------------------------#
+#                                     MORTALITY RATES (mmol/m3/day)
+#------------------------------------------------------------------------------------------------------------#
+m_lp = ones(np) * 0.01 
+m_qp = ones(np) * 0.1  # (.1 if explicit grazers, if not, 1)
+
+m_lb = ones(nb) * 0.01
+m_qb = ones(nb) * 0.05
+
+m_lz = ones(nz) * 0.01
+m_qz = ones(nz) * 0.5
+
+
+# -----------------------------------------------------------------------------------------------------------#
+#                                           ORGANIC MATTER
+#------------------------------------------------------------------------------------------------------------#
+om_dist_mort = [0.06, 0.19, 0.06, 0.02, 0.13, 0.39, 0.13, 0.02 ]  
+om_dist_lys = [0.0, 0.0, 0.0, 0.4, 0.3, 0.1, 0.0, 0.2]   # viral shunt reduces POM, enhances lab, some slab and ref from cell walls
+om_dist_vde = [0.0, 0.0, 0.0, 0.7, 0.3, 0.0, 0.0, 0.0]  # viral decay mostly amino acids/labile DOM
+
+
+# Sinking rate for POM  
+ws = zeros(nd)                  
+ws[1], ws[2], ws[3] = 10.0, 10.0, 10.0
+
 
 #------------------------------------------------------------------------------------------------------------#
 #                                          PHYSICAL ENVIRONMENT
@@ -221,14 +233,11 @@ end
 # -----------------------------------------------------------------------------------------------------------#
 #                                   INITIAL CONDITIONS (mmol N/m3)
 #------------------------------------------------------------------------------------------------------------# 
-
 nIC = ones(Float64, ngrid, nn) * 20.0
 pIC = ones(Float64, ngrid, np) * 0.01 
-zIC = ones(Float64, ngrid, nz) * 0.01
 dIC = ones(Float64, ngrid, nd) * 0.1
 bIC = ones(Float64, ngrid, nb) * 0.01 
 oIC = ones(Float64, ngrid, 1)  * 100.0
-
 
 
 # -----------------------------------------------------------------------------------------------------------#
@@ -240,7 +249,7 @@ params = Prms(
             umax_i, umax_ij, Km_i, Km_ij, y_ij, m_lb, m_qb, CM, Fg_b,
             g_max, K_g, γ, m_lz, m_qz, GrM, kappa_z, wd, ngrid, pulse, 
             om_dist_mort, om_dist_lys, om_dist_vde, VM, vly, vbs, vde,
-            e_o, yo_ij, koverh, o2_sat, ml_boxes, t_o2relax, o2_deep, fsaven
+            e_o, yo_ij, koverh, o2_sat, ml_boxes, t_o2relax, o2_deep, fsaven, lysis, graze
         )
 
     

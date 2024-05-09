@@ -10,7 +10,7 @@ set_zero_subnormals(true)
 
 
 #TODO add a sinking (dsink) to remove some detritus or it wont equilibriate 
-function run_NPZBDV(prms, season, lysis, bloom=false)
+function run_NPZBDV(prms, season, bloom=false)
 
     trec = prms.nt/prms.nrec # frequency of recording (no. timesteps / no. recordings - usually 5)
     start_time = now()
@@ -54,7 +54,7 @@ function run_NPZBDV(prms, season, lysis, bloom=false)
     # @time for t = 1:prms.nt 
     for t = 1:prms.nt
         # Runge-Kutta 4th order 
-        ntemp, ptemp, ztemp, btemp, dtemp, vtemp, otemp = rk4(ntemp, ptemp, ztemp, btemp, dtemp, vtemp, otemp, prms, t, bloom, season, lysis)
+        ntemp, ptemp, ztemp, btemp, dtemp, vtemp, otemp = rk4(ntemp, ptemp, ztemp, btemp, dtemp, vtemp, otemp, prms, t, bloom, season)
 
         if mod(t, trec) == 0 #i.e. if t divisible by 5
 
@@ -62,7 +62,11 @@ function run_NPZBDV(prms, season, lysis, bloom=false)
                                                                             track_time, ntemp, ptemp, ztemp, btemp, dtemp, vtemp, otemp, t, trec, prms)
             
             println("Total N: ", sum(ptemp) + sum(btemp) + sum(ntemp) + sum(dtemp) + sum(ztemp) + sum(vtemp))
-            
+            println("n = ", sum(ntemp))
+            println("d = ", sum(dtemp))
+            println("z = ", sum(ztemp))
+            println("v = ", sum(vtemp))
+
         end 
 
         # Nutrient redistribution pulsing routine (every 25 or 45 days)
@@ -84,6 +88,16 @@ function run_NPZBDV(prms, season, lysis, bloom=false)
             end 
         end
 
+        #Nutrient redistribution pulsing routine (semi-stochastic, corresponds to every 10 or 40 days)
+        if bloom == false
+            if prms.pulse == 3
+                if t in pulse_vec 
+                    ntemp, dtemp = pulse_nutrients(ntemp, dtemp, prms, prms.pulse) 
+                    println("PULSED at t=$t")
+                end 
+            end
+        end
+
         # Save outputs
         if t == prms.nt
             end_time = now() 
@@ -100,7 +114,7 @@ function run_NPZBDV(prms, season, lysis, bloom=false)
 end 
 
 
-function model_functions(N, P, Z, B, D, V, O, prms, t, bloom, season, lysis)
+function model_functions(N, P, Z, B, D, V, O, prms, t, bloom, season)
 
     if bloom == true
         if t == 90000
@@ -141,20 +155,20 @@ function model_functions(N, P, Z, B, D, V, O, prms, t, bloom, season, lysis)
     # bacteria uptake
     dDdt, dBdt, dNdt, dOdt = bacteria_uptake(prms, B, D, dDdt, dBdt, dNdt, dOdt)
 
-    # grazing
-    dZdt, dNdt, dPdt, dBdt = grazing(prms, P, B, Z, dZdt, dNdt, dPdt, dBdt)
-
     #phytoplankton mortality 
     dPdt, d_gain_mort = phyto_mortality(prms, P, dPdt, d_gain_mort)
 
     #bacterial mortality 
-    dBdt, d_gain_mort = bacterial_mortality(prms, B, dBdt, d_gain_mort, lysis)
-    
-    #zooplankton mortality 
-    dZdt, d_gain_mort = zoo_mortality(prms, Z, dZdt, d_gain_mort)
+    dBdt, d_gain_mort = bacterial_mortality(prms, B, dBdt, d_gain_mort)
 
-    # viral lysis
-    if lysis == 1
+    if prms.graze == 1
+        # grazing
+        dZdt, dNdt, dPdt, dBdt = grazing(prms, P, B, Z, dZdt, dNdt, dPdt, dBdt)
+        # zooplankton mortality 
+        dZdt, d_gain_mort = zoo_mortality(prms, Z, dZdt, d_gain_mort)
+    end   
+
+    if prms.lysis == 1
         # viral lysis (B only for now)
         dVdt, dBdt, d_gain_vly = viral_lysis(prms, B, V, dVdt, dBdt, d_gain_vly)
         #viral decay
@@ -228,7 +242,7 @@ function bacteria_uptake(prms, B, D, dDdt, dBdt, dNdt, dOdt)
         respired = (1 - yield)
         dDdt[:,II[j]] += -uptake
         dBdt[:,JJ[j]] += uptake .* yield
-        dNdt += uptake .* respired
+        dNdt += uptake .* respired # respired is CO2 which is inorganic nutrients
         dOdt +=  -uptake .* (yield ./ prms.yo_ij[II[j],JJ[j]])
     end
 
@@ -308,9 +322,9 @@ function phyto_mortality(prms, P, dPdt, d_gain_mort)
 end
 
 
-function bacterial_mortality(prms, B, dBdt, d_gain_mort, lysis)
+function bacterial_mortality(prms, B, dBdt, d_gain_mort)
 
-    if lysis == 1
+    if prms.lysis == 1
         bmort = transpose(prms.m_lb) .* B
     else
         bmort = (transpose(prms.m_lb) .+ transpose(prms.m_qb) .* B) .* B

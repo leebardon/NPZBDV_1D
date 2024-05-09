@@ -15,18 +15,11 @@ function message(v::String, nd::Int64=0, nb::Int64=0, nn::Int64=0, np::Int64=0, 
         "TM2" => "\nSelect Simulation Runtime:",
         "P1" => ["None (steady state)", "Periodic pulse at 25 (winter) or 45 (summer) day intervals", "Semi-stochastic pulse at 25 or 40 day intervals"],
         "P2" => "Select nutrient pulsing regime: ",
-        "SUB" => "\n SETTING SUBSTRATE TRAITS \n -------------------------- ",
-        "UP1" => ["Ordered assignment", "Randomly selected along log range"],
-        "UP2" => "Select max bacteria uptake rate (umax_i, 1/d):",
-        "UPP1" => ["Ordered assignment", "Randomly selected along log range"],
-        "UPP2" => "\nSelect max phyto uptake rate (vmax_i, 1/d):",
-        "MIC" => "\n SETTING MICROBIAL TRAITS \n --------------------------",
-        "T1" => ["Tradeoff", "Constant affinity"],
-        "TB2" => "Apply bacterial growth rate-affinity tradeoff?",
-        "TP2" => "\nApply phyto growth rate-affinity tradeoff?",
         "ENV" => "\n SETTING NUTRIENT SUPPLY \n -------------------------- ",
         "SE2" => "\nSimulate winter or summer conditions?",
         "SE1" => ["Winter", "Summer"],
+        "GZ2" => "\nInclude grazers?",
+        "GZ1" => ["yes", "no"],
         "LY2" => "\nInclude explicit or implicit viral lysis?",
         "LY1" => ["Explicit", "Implicit"],
         "LVP" => "\nSelect params to load: ",
@@ -186,7 +179,7 @@ function activate_logger(loginfo)
 end
 
 
-function log_params(prms, season, lysis)
+function log_params(prms, season, lysis, graze)
 
     @info(
     """Model Params: 
@@ -237,6 +230,7 @@ function log_params(prms, season, lysis)
     vde:            $(prms.vde)
     season (1=win)  $(season) 
     lysis (1=exp)   $(lysis)
+    grazing (1=yes)$(graze)
     savefile:       $(prms.fsaven)
     """) 
     
