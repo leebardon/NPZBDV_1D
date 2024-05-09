@@ -1,73 +1,29 @@
 
-using DataFrames, NCDatasets, Printf
-
-#TODO create savepath that includes pulse type
 
 function message(v::String, nd::Int64=0, nb::Int64=0, nn::Int64=0, np::Int64=0, nz::Int64=0, fsaven::String="")
 
     m = Dict(
         "START" => "\n -------------------------------- STARTING PROGRAM ----------------------------------- \n",
-        "ST1" => ["Start Prescribed Model Run", "Continue Run", "Track Bloom"],
-        "ST2" => "\nChoose run type: ",
-        "CT2" => "\nContinue primary run or bloom run?",
-        "CT1" => ["Primary run", "Bloom run"],
-        "TM1" => ["bloom (365 days)", "2 years (days=732)", "10 years (days=3660)", "30 years (days=10980)", "50 years (days=18300)", "100 years (days=36600)"],
-        "TM2" => "\nSelect Simulation Runtime:",
-        "P1" => ["None (steady state)", "Periodic pulse at 25 (winter) or 45 (summer) day intervals", "Semi-stochastic pulse at 25 or 40 day intervals"],
-        "P2" => "Select nutrient pulsing regime: ",
+        "RT1" => "\nChoose run type: ",
+        "RT2" => ["Start Prescribed Model Run", "Continue Run", "Track Bloom"],
+        "CT1" => "\nContinue primary run or bloom run?",
+        "CT2" => ["Primary run", "Bloom run"],
+        "TM" => "\nEnter simulation runtime (years):",
+        "P1" => "Select nutrient pulsing regime: ",
+        "P2" => ["None (steady state)", "Periodic pulse", "Semi-stochastic pulse"],
         "ENV" => "\n SETTING NUTRIENT SUPPLY \n -------------------------- ",
-        "SE2" => "\nSimulate winter or summer conditions?",
-        "SE1" => ["Winter", "Summer"],
-        "GZ2" => "\nInclude grazers?",
-        "GZ1" => ["yes", "no"],
-        "LY2" => "\nInclude explicit or implicit viral lysis?",
-        "LY1" => ["Explicit", "Implicit"],
+        "SE1" => "\nSimulate winter or summer conditions?",
+        "SE2" => ["Winter", "Summer"],
+        "GZ1" => "\nInclude grazers?",
+        "GZ2" => ["yes", "no"],
+        "LY1" => "\nInclude explicit or implicit viral lysis?",
+        "LY2" => ["Explicit", "Implicit"],
         "LVP" => "\nSelect params to load: ",
         "SV" => "Saving to: $fsaven",
 
     )
 
     return m["$v"]
-
-end
-
-
-function microbe_num(MSG)
-    println(message(MSG))
-    input = readline()
-    n = parse(Int64, input)
-    return n
-end
-
-
-function user_select(run_type=0)
-
-
-    println(message("DN"))
-    input = readline()
-    nd = parse(Int64, input) 
-    nb = microbe_num("BN")
-    np = microbe_num("PN")
-    nz = microbe_num("ZN")
-    nv = microbe_num("VN")
-    nn = 1
-    println(message("SUB"))
-    uptake = request(message("UP2"), RadioMenu(message("UP1")))
-    uptake == 1 ? umax_i = ordered_uptake_arr(nd) : umax_i = random_uptake_arr(nd)
-    uptake_p = request(message("UPP2"), RadioMenu(message("UPP1")))
-    uptake_p == 1 ? vmax_i = fill(1., np) : vmax_i = random_uptake_arr(np)
-
-    yield = request(message("Y2"), RadioMenu(message("Y1")))
-    yield == 1 ? y_i = ones(nd)*0.3 : y_i = rand(nd)*0.5
-    supply_weight = request(message("SW2"), RadioMenu(message("SW1")))
-
-    println(message("ENV"))
-    pulse = request(message("P2"), RadioMenu(message("P1")))
-    season = request(message("SE2"), RadioMenu(message("SE1")))
-
-    @info("User Selections: \n pulse type = $pulse, SW = $supply_weight \n B yield = $y_i \n B uptake = $umax_i \n P uptake = $vmax_i \n Season == $season \n")
-
-    return nd, nb, np, nz, nn, nv, y_i, supply_weight, umax_i, vmax_i, season, pulse
 
 end
 
@@ -230,7 +186,7 @@ function log_params(prms, season, lysis, graze)
     vde:            $(prms.vde)
     season (1=win)  $(season) 
     lysis (1=exp)   $(lysis)
-    grazing (1=yes)$(graze)
+    grazing (1=yes) $(graze)
     savefile:       $(prms.fsaven)
     """) 
     

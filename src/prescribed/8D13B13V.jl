@@ -18,8 +18,8 @@ nn = 1
 nv = 13
 
 println(message("ENV"))
-pulse = request(message("P2"), RadioMenu(message("P1")))
-season = request(message("SE2"), RadioMenu(message("SE1")))
+pulse = request(message("P1"), RadioMenu(message("P2")))
+season = request(message("SE1"), RadioMenu(message("SE2")))
 
 fsaven = set_savefiles(now(), season, pulse, years, np, nz, nb, nd, nv)
 
