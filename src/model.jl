@@ -18,6 +18,7 @@ function run_NPZBDV(prms, season, bloom=false)
     # Generate empty arrays
     nrec1 = Int(prms.nrec + 1)
     track_n = Array{Float64, 3}(undef, prms.ngrid, prms.nn, nrec1) 
+    track_c = Array{Float64, 3}(undef, prms.ngrid, prms.nn, nrec1) 
     track_p = Array{Float64, 3}(undef, prms.ngrid, prms.np, nrec1) 
     track_z = Array{Float64, 3}(undef, prms.ngrid, prms.nz, nrec1) 
     track_b = Array{Float64, 3}(undef, prms.ngrid, prms.nb, nrec1) 
@@ -27,6 +28,7 @@ function run_NPZBDV(prms, season, bloom=false)
     track_time = Array{Float64,1}(undef, nrec1)   
  
     track_n[:,:,1] .= prms.nIC
+    track_c[:,:,1] .= prms.cIC
     track_p[:,:,1] .= prms.pIC
     track_z[:,:,1] .= prms.zIC
     track_b[:,:,1] .= prms.bIC
@@ -38,6 +40,7 @@ function run_NPZBDV(prms, season, bloom=false)
     #--------------------------------------
     #Initial conditions at time t = 0
     ntemp = copy(prms.nIC) 
+    ctemp = copy(prms.cIC) 
     ptemp = copy(prms.pIC) 
     ztemp = copy(prms.zIC) 
     btemp = copy(prms.bIC)
@@ -45,27 +48,24 @@ function run_NPZBDV(prms, season, bloom=false)
     vtemp = copy(prms.vIC) 
     otemp = copy(prms.oIC) 
 
-
     # Create quasi-random vector of unique timesteps on which nutrient pulses occur, if pulsing enabled
     season == 1 ? npulses = floor(prms.days/25) : npulses = floor(prms.days/45) # nutrient pulse on average every 10 days in winter, 40 days in summer
     pulse_vec = sample(1:Int(prms.nt), Int(npulses), replace=false)
 
-
     # @time for t = 1:prms.nt 
     for t = 1:prms.nt
         # Runge-Kutta 4th order 
-        ntemp, ptemp, ztemp, btemp, dtemp, vtemp, otemp = rk4(ntemp, ptemp, ztemp, btemp, dtemp, vtemp, otemp, prms, t, bloom, season)
+        ntemp, ctemp, ptemp, ztemp, btemp, dtemp, vtemp, otemp = rk4(ntemp, ctemp, ptemp, ztemp, btemp, dtemp, vtemp, otemp, prms, t, bloom, season)
 
         if mod(t, trec) == 0 #i.e. if t divisible by 5
 
-            track_n, track_p, track_z, track_b, track_d, track_v, track_o = update_tracking_arrs(track_n, track_p, track_z, track_b, track_d, track_v, track_o, 
-                                                                            track_time, ntemp, ptemp, ztemp, btemp, dtemp, vtemp, otemp, t, trec, prms)
+            track_n, track_c, track_p, track_z, track_b, track_d, track_v, track_o = update_tracking_arrs(track_n, track_c, track_p, track_z, track_b, track_d, track_v, track_o, 
+                                                                            track_time, ntemp, ctemp, ptemp, ztemp, btemp, dtemp, vtemp, otemp, t, trec, prms)
             
-            println("Total N: ", sum(ptemp) + sum(btemp) + sum(ntemp) + sum(dtemp) + sum(ztemp) + sum(vtemp))
+            println("Total N: ", sum(ntemp), sum(ptemp) + sum(ztemp) + sum(btemp) + sum(dtemp) + sum(vtemp))
             println("n = ", sum(ntemp))
+            println("c = ", sum(ctemp))
             println("d = ", sum(dtemp))
-            println("z = ", sum(ztemp))
-            println("v = ", sum(vtemp))
 
         end 
 
@@ -101,20 +101,20 @@ function run_NPZBDV(prms, season, bloom=false)
         # Save outputs
         if t == prms.nt
             end_time = now() 
-            save_full_run(track_p, track_b, track_z, track_n, track_d, track_v, track_o, track_time, start_time, end_time, prms, season, lysis)
+            save_full_run(track_p, track_b, track_z, track_n, track_c, track_d, track_v, track_o, track_time, start_time, end_time, prms, season, lysis)
             if bloom == false
-                save_endpoints(track_p, track_b, track_z, track_n, track_d, track_v, track_o, track_time, start_time, end_time, prms, season, lysis)
+                save_endpoints(track_p, track_b, track_z, track_n, track_c, track_d, track_v, track_o, track_time, start_time, end_time, prms, season, lysis)
             end
         end
     end 
 
 
-    return ntemp, ptemp, ztemp, btemp, dtemp, vtemp, otemp, track_time
+    return ntemp, ctemp, ptemp, ztemp, btemp, dtemp, vtemp, otemp, track_time
 
 end 
 
 
-function model_functions(N, P, Z, B, D, V, O, prms, t, bloom, season)
+function model_functions(N, C, P, Z, B, D, V, O, prms, t, bloom, season)
 
     if bloom == true
         if t == 90000
@@ -136,8 +136,10 @@ function model_functions(N, P, Z, B, D, V, O, prms, t, bloom, season)
         kappa_Z = prms.kappa_z
     end
 
+    #TODO - left off here - switching to 0D as it's getting complicated!
     #Transport
     dNdt = diffusion(N, kappa_Z, prms.dz)
+    dCdt = diffusion(C, kappa_Z, prms.dz)
     dPdt = diffusion(P, kappa_Z, prms.dz)
     dZdt = diffusion(Z, kappa_Z, prms.dz)
     dBdt = diffusion(B, kappa_Z, prms.dz)
@@ -391,15 +393,16 @@ function get_nonzero_axes(M)
 end 
 
 
-function update_tracking_arrs(track_n, track_p, track_z, track_b, track_d, track_v, track_o, track_time, 
-    ntemp, ptemp, ztemp, btemp, dtemp, vtemp, otemp, t, trec, prms)
+function update_tracking_arrs(track_n, track_c, track_p, track_z, track_b, track_d, track_v, track_o, track_time, 
+    ntemp, ctemp, ptemp, ztemp, btemp, dtemp, vtemp, otemp, t, trec, prms)
 
     j = Int(t÷trec + 1)
     t_id = t.*prms.dt
-    track_p[:,:,j] .= ptemp
-    track_b[:,:,j] .= btemp 
-    track_z[:,:,j] .= ztemp 
     track_n[:,:,j] .= ntemp 
+    track_c[:,:,j] .= ctemp 
+    track_p[:,:,j] .= ptemp
+    track_z[:,:,j] .= ztemp 
+    track_b[:,:,j] .= btemp 
     track_d[:,:,j] .= dtemp
     track_v[:,:,j] .= vtemp
     track_o[:,:,j] .= otemp
@@ -407,7 +410,7 @@ function update_tracking_arrs(track_n, track_p, track_z, track_b, track_d, track
 
     @printf("Day %7.1f out of %5.0f = %4.0f%% done at %s \n", t_id, prms.days, t_id/prms.days*100, now())
 
-    return track_n, track_p, track_z, track_b, track_d, track_v, track_o, track_time
+    return track_n, track_c, track_p, track_z, track_b, track_d, track_v, track_o, track_time
 
 end
 

@@ -2,12 +2,12 @@
 using DataFrames, NCDatasets
 
 
-function set_savefiles(launch_time, season, pulse, years, np, nz, nb, nd, nv)
+function set_savefiles(launch_time, season, pulse, years, np, nz, nb, nd, nc, nv)
 
     season == 1 ? season_str = "Wi" : season_str = "Su"
 
     if pulse == 1
-        ptype = "NP"
+        ptype = ""
     elseif pulse == 2
         ptype = "PP"
     else
@@ -15,7 +15,7 @@ function set_savefiles(launch_time, season, pulse, years, np, nz, nb, nd, nv)
     end
 
     fsave = "results/outfiles/"
-    fsaven = string(fsave, Dates.format(launch_time, "yymmdd_HH:MM"), "_$(season_str)$(years)y$(ptype)_$(np)P$(nz)Z$(nb)B$(nd)D$(nv)V.nc")
+    fsaven = string(fsave, Dates.format(launch_time, "yymmdd_HH:MM"), "_$(season_str)$(years)y$(ptype)_$(nn)N$(nc)C$(np)P$(nz)Z$(nb)B$(nd)D$(nv)V.nc")
 
     return fsaven
 
@@ -50,7 +50,7 @@ function check_subfolder_exists(filename, parent_folder)
 end
 
 
-function save_full_run(p, b, z, n, d, v, o, timet, tst, tfn, prms, season_num, lysis)
+function save_full_run(p, b, z, n, c, d, v, o, timet, tst, tfn, prms, season_num, lysis)
 
     outdir = "/home/lee/Dropbox/Development/NPZBDV_1D/"
     season_num == 1 ? season = "winter" : season = "summer"
@@ -67,11 +67,12 @@ function save_full_run(p, b, z, n, d, v, o, timet, tst, tfn, prms, season_num, l
     println("\nSaving output file to: ", path)
     f = NCDataset(path, "c") 
 
-    # define the dim of p, b, z, n, d
+    # define the dim of p, b, z, n, c, d
     defDim(f,"np",prms.np)
     defDim(f,"nb",prms.nb)
     defDim(f,"nz",prms.nz)
     defDim(f,"nn",prms.nn)
+    defDim(f,"nc",prms.nc)
     defDim(f,"nd",prms.nd)
     defDim(f,"nv",prms.nv)
 
@@ -113,6 +114,10 @@ function save_full_run(p, b, z, n, d, v, o, timet, tst, tfn, prms, season_num, l
     w[:,:,:] = n
     w.attrib["units"] = "mmol N/m3"
 
+    w = defVar(f,"c",Float64,("ndepth" ,"nc","nrec"))
+    w[:,:,:] = c
+    w.attrib["units"] = "mmol C/m3"
+
     w = defVar(f,"d",Float64,("ndepth" ,"nd","nrec"))
     w[:,:,:] = d
     w.attrib["units"] = "mmol N/m3"
@@ -142,6 +147,10 @@ function save_full_run(p, b, z, n, d, v, o, timet, tst, tfn, prms, season_num, l
     w = defVar(f,"nIC",Float64,("ndepth","nn"))
     w[:,:] = prms.nIC
     w.attrib["units"] = "mmol N/m3"
+
+    w = defVar(f,"cIC",Float64,("ndepth","nc"))
+    w[:,:] = prms.cIC
+    w.attrib["units"] = "mmol C/m3"
 
     w = defVar(f,"dIC",Float64,("ndepth","nd"))
     w[:,:] = prms.dIC
@@ -381,7 +390,7 @@ function save_full_run(p, b, z, n, d, v, o, timet, tst, tfn, prms, season_num, l
 end
 
 
-function save_endpoints(p, b, z, n, d, v, o, timet, tst, tfn, prms, season, lysis)
+function save_endpoints(p, b, z, n, c, d, v, o, timet, tst, tfn, prms, season, lysis)
 
     outdir = "/home/lee/Dropbox/Development/NPZBDV_1D/"
     ep_path = replace(prms.fsaven, "results/outfiles" => "results/outfiles/endpoints", ".nc" => "_ep.nc")
@@ -396,7 +405,7 @@ function save_endpoints(p, b, z, n, d, v, o, timet, tst, tfn, prms, season, lysi
         pulse_type = "Semi-stochastic nutrient pulse"
     end
 
-    n, p, z, b, d, v, o = get_endpoints([n, p, z, b, d, v, o])
+    n, c, p, z, b, d, v, o = get_endpoints([n, c, p, z, b, d, v, o])
     # n, p, z, b, d, o = ep[1], ep[2], ep[3], ep[4], ep[5], ep[6]
 
     f = NCDataset(path, "c") 
@@ -406,6 +415,7 @@ function save_endpoints(p, b, z, n, d, v, o, timet, tst, tfn, prms, season, lysi
     defDim(f, "nb", prms.nb)
     defDim(f, "nz", prms.nz)
     defDim(f, "nn", prms.nn)
+    defDim(f, "nc", prms.nc)
     defDim(f, "nd", prms.nd)
     defDim(f, "no", 1)
     defDim(f,"nv", prms.nv)
@@ -444,6 +454,10 @@ function save_endpoints(p, b, z, n, d, v, o, timet, tst, tfn, prms, season, lysi
     w[:,:] = n
     w.attrib["units"] = "mmol/m3 N"
 
+    w = defVar(f,"c",Float64,("ndepth" ,"nc"))
+    w[:,:] = c
+    w.attrib["units"] = "mmol/m3 C"
+
     w = defVar(f,"d",Float64,("ndepth" ,"nd"))
     w[:,:] = d
     w.attrib["units"] = "mmol/m3 N"
@@ -472,27 +486,31 @@ function save_endpoints(p, b, z, n, d, v, o, timet, tst, tfn, prms, season, lysi
     
     w = defVar(f,"pIC",Float64,("ndepth","np"))
     w[:,:] = prms.pIC
-    w.attrib["units"] = "mmol/m3 C biomass"
+    w.attrib["units"] = "mmol/m3 N biomass"
 
     w = defVar(f,"bIC",Float64,("ndepth","nb"))
     w[:,:] = prms.bIC
-    w.attrib["units"] = "mmol/m3 C biomass"
+    w.attrib["units"] = "mmol/m3 N biomass"
 
     w = defVar(f,"zIC",Float64,("ndepth","nz"))
     w[:,:] = prms.zIC
-    w.attrib["units"] = "mmol/m3 C biomass"
+    w.attrib["units"] = "mmol/m3 N biomass"
 
     w = defVar(f,"nIC",Float64,("ndepth","nn"))
     w[:,:] = prms.nIC
+    w.attrib["units"] = "mmol/m3 N"
+
+    w = defVar(f,"cIC",Float64,("ndepth","nc"))
+    w[:,:] = prms.cIC
     w.attrib["units"] = "mmol/m3 C"
 
     w = defVar(f,"dIC",Float64,("ndepth","nd"))
     w[:,:] = prms.dIC
-    w.attrib["units"] = "mmol/m3 C"
+    w.attrib["units"] = "mmol/m3 N"
 
     w = defVar(f,"vIC",Float64,("ndepth","nv"))
     w[:,:] = prms.vIC
-    w.attrib["units"] = "mmol/m3 C"
+    w.attrib["units"] = "mmol/m3 N"
 
     # --------------------------------------------------
     
@@ -522,11 +540,15 @@ function save_endpoints(p, b, z, n, d, v, o, timet, tst, tfn, prms, season, lysi
 
     w = defVar(f, "nn", Int, ())
     w[:] = prms.nn
-    w.attrib["units"] = "num inorganic nutrient pools"
+    w.attrib["units"] = "num inorganic nitrogen pools"
+
+    w = defVar(f, "nc", Int, ())
+    w[:] = prms.nc
+    w.attrib["units"] = "num inorganic carbon pools"
 
     w = defVar(f, "nd", Int, ())
     w[:] = prms.nd
-    w.attrib["units"] = "num organic nutrient pools"
+    w.attrib["units"] = "num organic DOM pools"
 
     w = defVar(f, "nv", Int, ())
     w[:] = prms.nv

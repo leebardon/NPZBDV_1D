@@ -13,13 +13,15 @@
     np::Int64                      # number of phytoplankton
     nb::Int64                      # number of bacteria
     nz::Int64                      # number of zooplankton
-    nn::Int64                      # number of inorganic matter pools
+    nn::Int64                      # number of inorganic nitrogen pools
+    nc::Int64                      # number of carbon pools
     nd::Int64                      # number of organic matter pools
     nv::Int64                      # number of virus pools
     pIC::Array{Float64,2}          # initial condition for np p at time 0
     bIC::Array{Float64,2}          # initial condition for nb b at time 0
     zIC::Array{Float64,2}          # initial condition for nz z at time 0
     nIC::Array{Float64,2}          # initial condition for nn n at time 0
+    cIC::Array{Float64,2}          # initial condition for nn n at time 0
     dIC::Array{Float64,2}          # initial condition for nd d at time 0
     vIC::Array{Float64,2}          # initial condition for nv v at time 0
     oIC::Array{Float64,2}          # initial condition for no o at time 0
