@@ -102,9 +102,9 @@ function run_NPZBDV(prms, season, bloom=false)
         if t == prms.nt
             end_time = now() 
             save_full_run(track_p, track_b, track_z, track_n, track_d, track_v, track_o, track_time, start_time, end_time, prms, season, lysis)
-            if bloom == false
-                save_endpoints(track_p, track_b, track_z, track_n, track_d, track_v, track_o, track_time, start_time, end_time, prms, season, lysis)
-            end
+            # if bloom == false
+            #     save_endpoints(track_p, track_b, track_z, track_n, track_d, track_v, track_o, track_time, start_time, end_time, prms, season, lysis)
+            # end
         end
     end 
 
@@ -282,10 +282,15 @@ end
         function bacteria_grazing(prms, GrM, B, Z, dZdt, dNdt, dBdt, k)
 
             prey = sum(GrM[k,prms.np+1:end]' .*B, dims=2)
-            gb = prms.g_max[k] .* prey ./ (prey .+ prms.K_g[k])
-            dZdt[:,k] += prms.γ[k] .* gb .* Z[:,k]
-            dNdt += (1 - prms.γ[k]) .* gb .* Z[:,k]
-            dBdt +=  -gb .* Z[:,k] .* GrM[k,prms.np+1:end]' .* B ./ prey
+            gzb = Z[:,k] .* prms.g_max[k] .* prey ./ (prey .+ prms.K_g[k])
+            dZdt[:,k] += prms.γ[k] .* gzb
+            dNdt += (1 - prms.γ[k]) .* gzb  # sloppy feeding and excretement
+            dBdt +=  -gzb .* GrM[k,prms.np+1:end]' .* B ./ prey
+            
+            # gb = prms.g_max[k] .* prey ./ (prey .+ prms.K_g[k])
+            # dZdt[:,k] += prms.γ[k] .* gb .* Z[:,k]
+            # dNdt += (1 - prms.γ[k]) .* gb .* Z[:,k]
+            # dBdt +=  -gb .* Z[:,k] .* GrM[k,prms.np+1:end]' .* B ./ prey
 
             return dZdt, dNdt, dBdt
 

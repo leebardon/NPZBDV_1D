@@ -1,11 +1,11 @@
 
-# using NCDatasets
-# using Plots, Colors, LaTeXStrings, Measures
-# using DataFrames, Statistics
+using NCDatasets
+using Plots, Colors, LaTeXStrings, Measures
+using DataFrames, Statistics
 
-# include("/home/lee/Dropbox/Development/NPZBDV_1D/src/utils/utils.jl")
-# include("/home/lee/Dropbox/Development/NPZBDV_1D/src/utils/save_utils.jl")
-# include("/home/lee/Dropbox/Development/NPZBDV_1D/src/rstar.jl")
+include("/home/lee/Dropbox/Development/NPZBDV_1D/src/utils/utils.jl")
+include("/home/lee/Dropbox/Development/NPZBDV_1D/src/utils/save_utils.jl")
+include("/home/lee/Dropbox/Development/NPZBDV_1D/src/rstar.jl")
 
 
 function plot_state_vars(fsaven, season_num, lysis, graze, bloom=false)
@@ -30,17 +30,21 @@ function plot_state_vars(fsaven, season_num, lysis, graze, bloom=false)
         end
     end
     
-    f1, dir1 = plot_stacked_dar(N, P, Z, B, D, V, O, zc, filename)
-    println("saving to: $(dir1)/$(filename)_dar.png")
-    savefig(f1,"$(dir1)/$(filename)_dar.png")
+    # f1, dir1 = plot_stacked_dar(N, P, Z, B, D, V, O, zc, filename)
+    # println("saving to: $(dir1)/$(filename)_dar.png")
+    # savefig(f1,"$(dir1)/$(filename)_dar.png")
 
-    f2, dir2 = plot_individual_dar(P, Z, B, D, V, N, zc, filename)
-    println("saving to: $(dir2)/$(filename)_dar.png")
-    savefig(f2,"$(dir2)/$(filename)_dar.png")
+    # f2, dir2 = plot_individual_dar(P, Z, B, D, V, N, zc, filename)
+    # println("saving to: $(dir2)/$(filename)_dar.png")
+    # savefig(f2,"$(dir2)/$(filename)_dar.png")
 
-    f3, dir3 = plot_combined_OSM(P, Z, B, D, V, N, zc, filename, rstar_b)
+    f3, dir3 = plot_combined_rstar(P, Z, B, D, V, N, zc, filename, rstar_b)
     println("saving to: $(dir3)/$(filename).png")
     savefig(f3,"$(dir3)/$(filename).png")
+
+    # f4, dir3 = plot_combined_bmass(P, Z, B, D, V, N, zc, filename, rstar_b)
+    # println("saving to: $(dir3)/$(filename).png")
+    # savefig(f4,"$(dir3)/bmass_$(filename).png")
 
 end
 
@@ -258,7 +262,81 @@ function plot_combined(P, Z, B, D, V, N, zc, filename, rstar)
 
 end
 
-function plot_combined_OSM(P, Z, B, D, V, N, zc, filename, rstar)
+function plot_combined_rstar(P, Z, B, D, V, N, zc, filename, rstar)
+
+    parent_folder = "results/plots/combined/"
+    dir = check_subfolder_exists(filename, parent_folder)
+
+    P, Z, B = set_extinct_to_zero(P), set_extinct_to_zero(Z), set_extinct_to_zero(B)
+
+    yl=(-600.0, 0);
+    bcols, dcols, pcols, ncols, zcols, ab, ab_ext, ls, lfs, lg = get_plot_vars();
+    tfs = 9;
+    ls = 9;
+    ls2 = 4;
+    ls3 = 7;
+    ab = 0.7;
+    lfs = 7;
+    ls2 = 4;
+    xtfs = 8;
+    lg=:bottomright;
+    
+    maxd=60;
+
+    dcols = ["teal", "azure4", "red4", "black", "seagreen", "purple4", "maroon", "brown3", "honeydew3"];
+    bcols = ["teal", "azure4", "red4", "black", "seagreen", "purple4", "maroon", "brown3", "grey", "lime", "orchid", "pink2", "coral"];
+    rscols = ["teal", "azure4", "red4", "black", "seagreen", "purple4", "maroon", "brown3", "grey", "lime", "orchid", "pink2", "coral"];
+    tls = ["Labile DOM", "Semi-Rec DOM", "Refractory DOM"];
+
+    all_lab_D = sum(D[1:maxd, 4:6], dims=2)
+    lab_RS_cop = rstar[4][1:maxd] .+ rstar[5][1:maxd] .+ rstar[6][1:maxd]
+    # lab_RS_oli = rstar[9][1:maxd] .+ rstar[10][1:maxd] .+ rstar[11][1:maxd]
+    lab_B_cop = B[1:maxd,4] .+ B[1:maxd,5] .+ B[1:maxd,6]
+    # lab_B_oli = B[1:maxd,9] .+ B[1:maxd,10] .+ B[1:maxd,11]
+
+    fig1 = Array{Plots.Plot, 1}(undef, 2);
+    fig1[1] =   plot(all_lab_D[1:maxd,:], -zc[1:maxd], lw=ls3, lc=dcols[9], label=" LDOM", legendfontsize=lfs, ylabel="Depth (m)", xlabel=L"log(mmol ~N/m^3)", 
+                xrotation=45, title=tls[1], titlefontsize=tfs, grid=false, border=:box, xscale=:log10, legend=lg, xtickfontsize=xtfs, alpha=ab, 
+                bottom_margin=5mm)
+                # xscale=:log10, 
+                # plot!(lab_RS_cop, -zc[1:maxd], lw=ls2, label=" R* Copio ", linestyle=:dot, lc=rscols[4])
+                # plot!(lab_RS_oli[1:maxd,:], -zc[1:maxd], lw=3, label=" R* ", linestyle=:dot, lc="red3")
+                # plot!(lab_B_oli[1:maxd,:], -zc[1:maxd], lw=ls3, label=" BA ", lc="seagreen", alpha=ab)
+                # plot!(lab_RS_cop[1:maxd,:], -zc[1:maxd], lw=3, label=" R* ", linestyle=:dot, lc="red3")
+                plot!(lab_B_cop[1:maxd,:], -zc[1:maxd], lw=ls3, label=" BA ", lc="seagreen", alpha=ab)
+                # plot!(Z[1:maxd,3], -zc[1:maxd], lw=ls3, label=" Z ", lc="black", alpha=0.5)
+
+    fig1[2] =   plot(D[1:maxd, 7], -zc[1:maxd], lw=ls3, lc=dcols[9], label=" SRDOM", legendfontsize=lfs, xscale=:log10, legend=lg,
+                yformatter=Returns(""), xlabel=L"log(mmol ~N/m^3)", xrotation=45, title=tls[2], titlefontsize=tfs, grid=false, border=:box, 
+                xtickfontsize=xtfs, alpha=ab, bottom_margin=5mm)
+                # xscale=:log10, 
+                # plot!(rstar[7][1:maxd], -zc[1:maxd], lw=3, label=" R* ", linestyle=:dot, lc="red3")
+                # plot!(rstar[12][1:89], -zc[1:maxd], lw=ls2, label=" R* Oligo", linestyle=:dot, lc=rscols[12])
+                plot!(B[1:maxd,7], -zc[1:maxd], lw=ls3, label=" BA ", lc="lime", alpha=ab)
+                # plot!(Z[1:maxd,3], -zc[1:maxd], lw=ls3, label=" Z ", lc="black", alpha=0.5)
+                # lens!([0, 0.4], [-300, 0], inset = (1, bbox(0.7, 0.4, 0.5, 0.7)))
+                
+
+    # fig1[3] =   plot(D[1:maxd, 8], -zc[1:maxd], lw=ls3, lc=dcols[9], label=" RDOM", legendfontsize=lfs, xscale=:log10,
+    #             yformatter=Returns(""), xlabel=L"log(mmol ~N/m^3)", xrotation=45, title=tls[3], titlefontsize=tfs, grid=false, border=:box, legend=lg, 
+    #             xtickfontsize=xtfs, alpha=ab, bottom_margin=5mm)
+    #             # xscale=:log10,
+    #             plot!(rstar[8][1:maxd], -zc[1:maxd], lw=ls2, label=" R*", linestyle=:dot, lc=rscols[8])
+    #             # plot!(rstar[13][1:maxd], -zc[1:maxd], lw=ls2, label=" R* Oligo", linestyle=:dot, lc=rscols[13])
+    #             plot!(B[1:maxd,8], -zc[1:maxd], lw=ls3, label=" BA ", lc=bcols[8], alpha=ab)
+
+
+    f3 = plot(fig1..., 
+    fg_legend = :transparent,
+    layout = (1,3),
+    size=(600,300),
+    )
+
+    return f3, dir
+
+end
+
+function plot_combined_bmass(P, Z, B, D, V, N, zc, filename, rstar)
 
     parent_folder = "results/plots/combined/"
     dir = check_subfolder_exists(filename, parent_folder)
@@ -275,33 +353,33 @@ function plot_combined_OSM(P, Z, B, D, V, N, zc, filename, rstar)
     lfs = 7
     ls2 = 4
     xtfs = 8
-    lg=:topleft
+    lg=:bottomright
 
     dcols = ["teal", "azure4", "red4", "black", "seagreen", "purple4", "maroon", "brown3", "honeydew3"]
     bcols = ["teal", "azure4", "red4", "black", "seagreen", "purple4", "maroon", "brown3", "grey", "lime", "orchid", "pink2", "coral"]
     rscols = ["teal", "azure4", "red4", "black", "seagreen", "purple4", "maroon", "brown3", "grey", "lime", "orchid", "pink2", "coral"]
-    tls = ["Labile DOM", "Semi-Labile DOM", "Refractory DOM"]
+    tls = ["Labile DOM", "Semi-Rec DOM", "Refractory DOM"]
 
     all_lab_D = sum(D[:, 4:6], dims=2)
     all_lab_cop = rstar[4][:] .+ rstar[5][:] .+ rstar[6][:]
     all_lab_oli = rstar[9][:] .+ rstar[10][:] .+ rstar[11][:]
 
     fig1 = Array{Plots.Plot, 1}(undef, 3);
-    fig1[1] =   plot(all_lab_D, -zc, lw=ls3, lc=dcols[9], label=" L.DOM", legendfontsize=lfs, ylabel="Depth (m)", xlabel=L"log(mmol ~N/m^3)", 
-                xrotation=45, title=tls[1], titlefontsize=tfs, grid=false, border=:box, legend=lg, xtickfontsize=xtfs, xscale=:log10, alpha=ab, 
+    fig1[1] =   plot(all_lab_D, -zc, lw=ls3, lc=dcols[9], label=" Lab", legendfontsize=lfs, ylabel="Depth (m)", xlabel=L"log(mmol ~N/m^3)", 
+                xrotation=45, title=tls[1], titlefontsize=tfs, grid=false, border=:box, legend=lg, xtickfontsize=xtfs, alpha=ab, 
                 bottom_margin=5mm)
-                plot!(all_lab_cop, -zc, lw=ls2, label=" R* Copio", linestyle=:dot, lc=rscols[4])
-                plot!(all_lab_oli, -zc, lw=ls2, label=" R* Oligo", linestyle=:dot, lc=rscols[9])
+                # plot!(all_lab_cop, -zc, lw=ls2, label=" Bac. Copio ", linestyle=:dot, lc=rscols[4])
+                plot!(all_lab_oli, -zc, lw=ls2, label=" Bac.", linestyle=:dot, lc=rscols[9])
 
-    fig1[2] =   plot(D[1:89, 7], -zc, lw=ls3, lc=dcols[9], label=" SL.DOM", legendfontsize=lfs,
+    fig1[2] =   plot(D[1:89, 7], -zc, lw=ls3, lc=dcols[9], label=" SRec", legendfontsize=lfs,
                 yformatter=Returns(""), xlabel=L"log(mmol ~N/m^3)", xrotation=45, title=tls[2], titlefontsize=tfs, grid=false, border=:box, legend=lg, 
-                xtickfontsize=xtfs, xscale=:log10, alpha=ab, bottom_margin=5mm)
-                plot!(rstar[7][1:89], -zc, lw=ls2, label=" R* Copio", linestyle=:dot, lc=rscols[7])
-                plot!(rstar[12][1:89], -zc, lw=ls2, label=" R* Oligo", linestyle=:dot, lc=rscols[12])
+                xtickfontsize=xtfs, alpha=ab, bottom_margin=5mm)
+                plot!(rstar[7][1:89], -zc, lw=ls2, label=" Bac. ", linestyle=:dot, lc=rscols[7])
+                # plot!(rstar[12][1:89], -zc, lw=ls2, label=" Bac. Oligo", linestyle=:dot, lc=rscols[12])
 
     fig1[3] =   plot(D[1:89, 8], -zc, lw=ls3, lc=dcols[9], label=" R.DOM", legendfontsize=lfs,
                 yformatter=Returns(""), xlabel=L"log(mmol ~N/m^3)", xrotation=45, title=tls[3], titlefontsize=tfs, grid=false, border=:box, legend=lg, 
-                xtickfontsize=xtfs, xscale=:log10, alpha=ab, bottom_margin=5mm)
+                xtickfontsize=xtfs, alpha=ab, bottom_margin=5mm)
                 plot!(rstar[8][1:89], -zc, lw=ls2, label=" R* Copio", linestyle=:dot, lc=rscols[8])
                 plot!(rstar[13][1:89], -zc, lw=ls2, label=" R* Oligo", linestyle=:dot, lc=rscols[13])
 
@@ -317,13 +395,63 @@ function plot_combined_OSM(P, Z, B, D, V, N, zc, filename, rstar)
 end
 
 # bloom=false
-# fsaven = "results/outfiles/240430_01:08_Su30yNP_6P3Z13B8D13V.nc"
-# fsaven = "results/outfiles/240430_10:54_Su30yNP_6P3Z13B8D13V.nc"
-# fsaven="results/outfiles/240501_16:58_Wi2yNP_6P3Z13B8D13V.nc"
-# season_num=1
-# lysis=1
-# graze=2
+f1="results/outfiles/240710_13:30_Wi2yNP_6P3Z8B8D8V.nc";
+f2="results/outfiles/240710_12:20_Wi2yNP_6P3Z8B8D8V.nc";
+season_num=1
+# lysis=2  # 1=explicit, 2=implicit 
+# graze=1  # 1=explicit, 2=implicit
 
 # plot_state_vars(fsaven, season_num, lysis, graze, bloom)
 
+H = 890
+zc = get_zc(H)
+ds1 = NCDataset(f1);
+ds2 = NCDataset(f2);
 
+N1, P1, Z1, B1, D1, V1, O1 = mean_over_time(["n", "p", "z", "b", "d", "v", "o"], ds1, season_num)
+N2, P2, Z2, B2, D2, V2, O2 = mean_over_time(["n", "p", "z", "b", "d", "v", "o"], ds2, season_num)
+
+maxd=50;
+lab_D1 = sum(D1[1:maxd, 4:6], dims=2);
+# lab_RS_b1 = rstar_b1[4][1:maxd] .+ rstar_b1[5][1:maxd] .+ rstar_b1[6][1:maxd];
+lab_B1 = B1[1:maxd,4] .+ B1[1:maxd,5] .+ B1[1:maxd,6];
+lab_D2 = sum(D2[1:maxd, 4:6], dims=2);
+# lab_RS_b2 = rstar_b2[4][1:maxd] .+ rstar_b2[5][1:maxd] .+ rstar_b2[6][1:maxd];
+lab_B2 = B2[1:maxd,4] .+ B2[1:maxd,5] .+ B2[1:maxd,6];
+
+fig1 = Array{Plots.Plot, 1}(undef, 2);
+xtfs = 10;
+ab=0.3;
+ab2=0.3;
+ab3=0.9;
+tfs=18;
+ls3=14;
+ls2=9;
+ls1=5;
+maxd=50;
+lfs=16;
+lg=:bottomright;
+
+fig1[1] =   plot(lab_D2[1:maxd, :], -zc[1:maxd], lw=ls2, lc="brown", xscale=:log10, ylabel="Depth (m)",  xrotation=45, 
+title="With Grazers", titlefontsize=tfs, grid=false, border=:box, xtickfontsize=xtfs, alpha=ab,legendfontsize=lfs, label="", legend=lg);
+plot!(D2[1:maxd,7], -zc[1:maxd], lw=ls2, lc="black", alpha=ab2, label="");
+plot!(lab_B2[1:maxd,:], -zc[1:maxd], lw=ls3, label=L" ~ \mathrm{B_{L}} ", lc="turquoise1", alpha=ab3);
+plot!(B2[1:maxd,7], -zc[1:maxd], lw=ls3, label=L" ~ \mathrm{B_{SR}}", lc="steelblue3", alpha=ab3);
+# plot!(Z1[1:maxd,3], -zc[1:maxd], lw=ls2, label=L" ~ \mathrm{Z} ", lc="limegreen", alpha=0.4);
+# plot!(lab_RS_b2[1:maxd,:], -zc[1:maxd], lw=ls1,  linestyle=:dot, lc="red", label="");
+# plot!(rstar_b2[7][1:maxd], -zc[1:maxd], lw=ls1, linestyle=:dot, lc="navyblue", label="");
+
+fig1[2] =   plot(lab_D1[1:maxd,:], -zc[1:maxd], lw=ls2, lc="brown", label=L" ~\mathrm{L_{DOM}}", legendfontsize=lfs, yformatter=Returns(""),
+xrotation=45, title="No Grazers", titlefontsize=tfs, grid=false, border=:box, xscale=:log10, legend=lg, xtickfontsize=xtfs, alpha=ab);
+plot!(D1[1:maxd,7], -zc[1:maxd], label=L"  ~\mathrm{SR_{DOM}}", lc="black", alpha=ab2, lw=ls2);
+plot!(lab_B1[1:maxd,:], -zc[1:maxd], lw=ls3, label="", lc="turquoise1", alpha=ab3);
+plot!(B1[1:maxd,7], -zc[1:maxd], lw=ls3, label="", lc="steelblue3", alpha=ab3);
+# plot!(lab_RS_b1[1:maxd,:], -zc[1:maxd], lw=ls1, label=L" ~ \mathrm{R_{L*}} ", linestyle=:dot, lc="red");
+# plot!(rstar_b1[7][1:maxd], -zc[1:maxd], lw=ls1, label=L" ~ \mathrm{R_{SR*}}", linestyle=:dot, lc="navyblue");
+
+f3 = plot(fig1..., 
+fg_legend = :transparent,
+layout = (1,2),
+size=(600,400),
+)
+savefig(f3,"prelim_Ch1.png")

@@ -1,4 +1,5 @@
 
+using Printf
 
 function message(v::String, nd::Int64=0, nb::Int64=0, nn::Int64=0, np::Int64=0, nz::Int64=0, fsaven::String="")
 
@@ -213,7 +214,8 @@ function check_for_negatives(RS)
 
     for i in eachindex(RS)
         for j in eachindex(RS[i])
-            RS[i][j] = ifelse(RS[i][j] < 0 || RS[i][j] > 15, NaN, RS[i][j])
+            # RS[i][j] = ifelse(RS[i][j] <= 0 || RS[i][j] > 20, NaN, RS[i][j])
+            RS[i][j] = ifelse(RS[i][j] <= 0, NaN, RS[i][j])
         end
     end
 

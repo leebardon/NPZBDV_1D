@@ -1,0 +1,3 @@
+┌ Warning: Forcibly interrupting busy workers
+│   exception = ErrorException("task switch not allowed from inside gc finalizer")
+└ @ Distributed /cache/build/default-amdci4-2/julialang/julia-release-1-dot-8/usr/share/julia/stdlib/v1.8/Distributed/src/cluster.jl:1253

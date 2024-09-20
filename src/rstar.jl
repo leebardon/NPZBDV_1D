@@ -23,14 +23,14 @@ function rstar_analysis(fsaven, season_num, lysis, graze, bloom)
         end
     end
 
-    P = set_extinct_to_zero(P)
-    B = set_extinct_to_zero(B)
-    Z = set_extinct_to_zero(Z)
+    # P = set_extinct_to_zero(P)
+    # B = set_extinct_to_zero(B)
+    # Z = set_extinct_to_zero(Z)
     # V = set_extinct_to_zero(V)
 
     rstar_b, rstar_p, rstar_z = get_rstar(B, P, Z, V, lysis, graze, ds)
     # plot_rstar(rstar_b, rstar_p, rstar_z, fsaven)
-    plot_rstar_dar(rstar_b, rstar_p, rstar_z, fsaven)
+    # plot_rstar_dar(rstar_b, rstar_p, rstar_z, fsaven)
 
     return rstar_b, rstar_p, rstar_z
 
@@ -83,11 +83,11 @@ function mortality(Biomass, V, ds, n, lysis, graze, group)
         if lysis == 1
             for i in range(1, n)
                 lysis_Bi = get_lysis_Bi(ds, Biomass[:, i], V[:, i])
-                mort[:, i] += (ds["m_lb"][i] .* Biomass[:,i]) .+ lysis_Bi
+                mort[:, i] += ((ds["m_lb"][i] .+ lysis_Bi) .* Biomass[:,i])
             end
         else
             for i in range(1, n)
-                mort[:, i] += (ds["m_lb"][i] .+ ds["m_qb"][i] .* Biomass[:,i])
+                mort[:, i] += ((ds["m_lb"][i] .+ ds["m_qb"][i]) .* Biomass[:,i])
             end
         end
     end
@@ -95,14 +95,14 @@ function mortality(Biomass, V, ds, n, lysis, graze, group)
     if group == "P"
         for i in range(1, n)
                 # mort[:, i] += (m_lp[i] .+ m_qp[i] .* Biomass[:,i])
-            mort[:, i] += (ds["m_lp"][i] .+ ds["m_qp"][i] .* Biomass[:,i])
+            mort[:, i] += ((ds["m_lp"][i] .+ ds["m_qp"][i]) .* Biomass[:,i])
         end
     end
 
     if group == "Z"
         if graze == 1
             for i in range(1, n)
-                mort[:, i] += (ds["m_lz"][i] .+ ds["m_qz"][i] .* Biomass[:,i])
+                mort[:, i] += ((ds["m_lz"][i] .+ ds["m_qz"][i]) .* Biomass[:,i])
             end
         end
     end
@@ -216,11 +216,11 @@ function RstarB(loss, ds)
     end
 
     # When R* plots are logscale, replace 0 with NaN or plots won't work
-    RS_out = check_for_negatives(RS)
-    RS_out = replace.(RS, 0.0 => NaN)
-
+    RS_ = check_for_negatives(RS)
+    RS_out = replace.(RS_, 0.0 => NaN)
 
     return RS_out
+ 
 
 
 end
